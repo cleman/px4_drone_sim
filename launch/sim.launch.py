@@ -77,6 +77,17 @@ def generate_launch_description():
         arguments=["--ros-args", "-p", f"config_file:={BRIDGE_CONFIG}"],
         output="screen",
     )
+    gz_pose_relay = Node(
+        package="px4_drone_sim",
+        executable="gz_pose_relay.py",
+        name="gz_pose_relay",
+        parameters=[
+            {"gz_world": GZ_WORLD},
+            {"target_model": ROBOT_MODEL},
+            {"parent_frame": "world"},
+            {"child_frame": f"{ROBOT_MODEL}_0/link/base_link"},
+        ],
+    )
 
     # ── 4. QGroundControl ─────────────────────────────────────────
     qgc = ExecuteProcess(
@@ -89,7 +100,7 @@ def generate_launch_description():
     # We override the parameter 'robot_name' to be empty so it maps 
     # directly to the global PX4 DDS topics (/fmu/...)
     waypoint_controller = Node(
-        package="px4_control",
+        package="px4_drone_sim",
         executable="waypoint_control",
         name="waypoint_control_node",
         parameters=[
@@ -124,6 +135,9 @@ def generate_launch_description():
         package="px4_drone_sim",
         executable="scan_stabilizer.py",
         name="scan_stabilizer",
+        arguments=[
+            {"z_threshold": 0.15},
+        ],
     )
 
     # ── 7. Static TF: drone base_link → lidar frame ───────────────
@@ -205,6 +219,7 @@ def generate_launch_description():
         # Bridge
         LogInfo(msg="[3/9] ros_gz_bridge starts in 10 s ..."),      # clock
         delayed_bridge,
+        gz_pose_relay,
 
         # QGroundControl
         LogInfo(msg="[4/9] QGroundControl starts in 12 s ..."),     # QGroundControl
@@ -224,9 +239,9 @@ def generate_launch_description():
         static_tf_lidar,
 
         # Cost Map
-        LogInfo(msg="[8/9] Starting Nav2 costmap and lifecycle manager ..."),
-        nav2_costmap,
-        nav2_lifecycle,
+        # LogInfo(msg="[8/9] Starting Nav2 costmap and lifecycle manager ..."),
+        # nav2_costmap,
+        # nav2_lifecycle,
 
         # Rviz2
         LogInfo(msg="[9/9] Starting Rviz2 ..."),
