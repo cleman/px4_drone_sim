@@ -1,0 +1,15 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Emacs/Vim temporary files
+*~
+*.swp
+
+# VS Code settings
+.vscode/
+
+# Éventuels dossiers de build si tu as compilé dans le package (rare mais safe)
+build/
+install/
+log/

@@ -1,0 +1,31 @@
+# ============================================================
+#  ros_gz_bridge configuration
+#  Maps Gazebo topics <-> ROS 2 topics
+#  (Micro XRCE-DDS handles PX4 uORB <-> ROS 2 directly)
+# ============================================================
+
+# --- Gazebo → ROS 2 ---
+#- ros_topic_name: "/lidar/points"
+#  gz_topic_name: "/world/default/model/x500_lidar_2d_0/link/lidar_link/sensor/lidar/points"
+#  ros_type_name: "sensor_msgs/msg/PointCloud2"
+#  gz_type_name: "gz.msgs.PointCloudPacked"
+#  direction: GZ_TO_ROS
+
+#- ros_topic_name: "/imu/data"
+#  gz_topic_name: "/world/default/model/x500_lidar_2d_0/link/base_link/sensor/imu_sensor/imu"
+#  ros_type_name: "sensor_msgs/msg/Imu"
+#  gz_type_name: "gz.msgs.IMU"
+#  direction: GZ_TO_ROS
+
+#- ros_topic_name: "/model/x500_lidar_2d_0/odometry"
+#  gz_topic_name: "/model/x500_lidar_2d_0/odometry"
+#  ros_type_name: "nav_msgs/msg/Odometry"
+#  gz_type_name: "gz.msgs.Odometry"
+#  direction: GZ_TO_ROS
+
+# --- ROS 2 → Gazebo (optional: clock) ---
+- ros_topic_name: "/clock"
+  gz_topic_name: "/clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS
