@@ -24,6 +24,7 @@ from launch.actions import (
     TimerAction,
     LogInfo,
 )
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from ament_index_python.packages import get_package_share_directory
@@ -54,12 +55,20 @@ for path in [BRIDGE_CONFIG, SLAM_PARAMS, NAV2_PARAMS, RVIZ_CONFIG]:
 
 def generate_launch_description():
 
+    world_arg = DeclareLaunchArgument(
+        'world',
+        default_value='default',
+        description='Nom du monde Gazebo a charger (ex: default, ecn_campus, forest)'
+    )
+    #world_config = LaunchConfiguration('world')
+
     # ── 1. PX4 SITL  (starts gz server + spawns drone) ───────────
     px4_sitl = ExecuteProcess(
         cmd=["make", "px4_sitl", "gz_x500_lidar_2d"],
         cwd=PX4_DIR,
         output="screen",
         name="px4_sitl",
+        additional_env={"PX4_GZ_WORLD": LaunchConfiguration('world')},
     )
 
     # ── 2. Micro XRCE-DDS Agent ───────────────────────────────────
@@ -82,11 +91,13 @@ def generate_launch_description():
         executable="gz_pose_relay.py",
         name="gz_pose_relay",
         parameters=[
-            {"gz_world": GZ_WORLD},
-            {"target_model": ROBOT_MODEL},
+            {"gz_world": LaunchConfiguration('world')},
+            {"target_model": f"{ROBOT_MODEL}_0"},
             {"parent_frame": "world"},
             {"child_frame": f"{ROBOT_MODEL}_0/link/base_link"},
         ],
+        output="log",
+        arguments=['--ros-args', '--log-level', 'WARN']
     )
 
     # ── 4. QGroundControl ─────────────────────────────────────────
@@ -108,7 +119,8 @@ def generate_launch_description():
             {"control_mode": "offboard"},
             {"use_sim_time": True},
         ],
-        output="screen",
+        output="log",
+        arguments=['--ros-args', '--log-level', 'WARN']
     )
 
     # ── 6. Lidar scan bridge (LaserScan → /scan) ──────────────────
@@ -118,15 +130,20 @@ def generate_launch_description():
         package="ros_gz_bridge",
         executable="parameter_bridge",
         name="gz_scan_bridge",
+        # On construit les arguments comme une liste de chaînes et de substitutions
         arguments=[
-            f"/world/{GZ_WORLD}/model/{ROBOT_MODEL}_0/link/link"
-            f"/sensor/lidar_2d_v2/scan"
-            f"@sensor_msgs/msg/LaserScan"
-            f"[gz.msgs.LaserScan",
+            [
+                "/world/", LaunchConfiguration('world'), 
+                f"/model/{ROBOT_MODEL}_0/link/link/sensor/lidar_2d_v2/scan",
+                "@sensor_msgs/msg/LaserScan",
+                "[gz.msgs.LaserScan"
+            ],
             "--ros-args",
             "-r",
-            f"/world/{GZ_WORLD}/model/{ROBOT_MODEL}_0/link/link"
-            f"/sensor/lidar_2d_v2/scan:=/scan",
+            [
+                "/world/", LaunchConfiguration('world'), 
+                f"/model/{ROBOT_MODEL}_0/link/link/sensor/lidar_2d_v2/scan:=/scan"
+            ],
             "-p", "use_sim_time:=true",
         ],
         output="screen",
@@ -135,9 +152,12 @@ def generate_launch_description():
         package="px4_drone_sim",
         executable="scan_stabilizer.py",
         name="scan_stabilizer",
-        arguments=[
+        parameters=[
             {"z_threshold": 0.15},
+            {"use_sim_time": True}
         ],
+        output="log",
+        arguments=['--ros-args', '--log-level', 'WARN']
     )
 
     # ── 7. Static TF: drone base_link → lidar frame ───────────────
@@ -210,6 +230,8 @@ def generate_launch_description():
 
     num_line = 9
     return LaunchDescription([
+        world_arg,
+
         # PX4 SITL + Gazebo GUI
         LogInfo(msg="[1/9] Starting PX4 SITL (gz server + drone spawn) ..."),
         px4_sitl,
@@ -239,9 +261,9 @@ def generate_launch_description():
         static_tf_lidar,
 
         # Cost Map
-        # LogInfo(msg="[8/9] Starting Nav2 costmap and lifecycle manager ..."),
-        # nav2_costmap,
-        # nav2_lifecycle,
+        LogInfo(msg="[8/9] Starting Nav2 costmap and lifecycle manager ..."),
+        nav2_costmap,
+        nav2_lifecycle,
 
         # Rviz2
         LogInfo(msg="[9/9] Starting Rviz2 ..."),
