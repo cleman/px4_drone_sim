@@ -9,6 +9,8 @@ Clone this repository into your `ros2_ws/src` folder, then build the workspace:
 ```bash
 # In your ros2_ws/src directory
 git clone <https://github.com/cleman/px4_drone_sim.git>
+# Clone px4_msgs here so it is available to the workspace
+git clone https://github.com/PX4/px4_msgs.git
 cd ..
 colcon build --symlink-install
 source install/setup.bash
@@ -21,22 +23,15 @@ To make the custom world ecn_campus available to PX4, you must copy them into th
 
 ```bash
 # Copy the .sdf file
-cp ros2_ws/src/px4_drone_sim/worlds/ecn_campus/ecn_campus.sdf ~/PX4-Autopilot/Tools/simulation/gz/worlds/
+cp src/px4_drone_sim/worlds/ecn_campus/ecn_campus.sdf ~/PX4-Autopilot/Tools/simulation/gz/worlds/
 
 # Copy the meshes folder (if required by your world)
-cp -r ros2_ws/src/px4_drone_sim/worlds/ecn_campus/meshes ~/PX4-Autopilot/Tools/simulation/gz/worlds/
+cp -r src/px4_drone_sim/worlds/ecn_campus/meshes ~/PX4-Autopilot/Tools/simulation/gz/worlds/
 
 ```
 
 
-### 3. Dependencies (`px4_msgs`)
-
-Currently, the `px4_msgs` package is missing from this workspace.
-
-* **Fix:** For now, please copy the `px4_msgs` folder from your previous/original workspace into this `src` directory.
-* *This will be properly managed/added in a future update.*
-
-### 4. Launching the Simulation
+### 3. Launching the Simulation
 
 Use the following command to launch the simulation with your specific world:
 
