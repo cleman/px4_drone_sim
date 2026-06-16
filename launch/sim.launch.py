@@ -24,7 +24,8 @@ from launch.actions import (
     TimerAction,
     LogInfo,
 )
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 
 from ament_index_python.packages import get_package_share_directory
@@ -60,6 +61,10 @@ def generate_launch_description():
         default_value='default',
         description='Nom du monde Gazebo a charger (ex: default, ecn_campus, forest)'
     )
+    json_points_path = PathJoinSubstitution([
+        package_share_dir, 
+        "worlds",
+    ])
     #world_config = LaunchConfiguration('world')
 
     # ── 1. PX4 SITL  (starts gz server + spawns drone) ───────────
@@ -178,17 +183,19 @@ def generate_launch_description():
         output="screen",
     )
  
+    '''
     # # ── 9. SLAM Toolbox  (uncomment to enable) ────────────────────
     # # Requires: sudo apt install ros-jazzy-slam-toolbox
-    # slam_toolbox = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([
-    #         FindPackageShare("slam_toolbox"), "/launch/online_async_launch.py"
-    #     ]),
-    #     launch_arguments={
-    #         "slam_params_file": SLAM_PARAMS,
-    #         "use_sim_time": "true",
-    #     }.items(),
-    # )
+    slam_toolbox = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            FindPackageShare("slam_toolbox"), "/launch/online_async_launch.py"
+        ]),
+        launch_arguments={
+            "slam_params_file": SLAM_PARAMS,
+            "use_sim_time": "true",
+        }.items(),
+    )
+    '''
  
     # ── 10. Nav2 costmap  (uncomment to enable) ───────────────────
     # Requires: sudo apt install ros-jazzy-nav2-costmap-2d ros-jazzy-nav2-lifecycle-manager
@@ -218,6 +225,25 @@ def generate_launch_description():
         name="rviz2",
     )
 
+    ## - 12. Scenario Manager ───────────────
+    scenarioManager = Node(
+        package="px4_drone_sim",
+        executable="scenarioManager.py",
+        name="scenarioManager",
+        parameters=[
+        {
+            "json_path": PathJoinSubstitution([
+                FindPackageShare("px4_drone_sim"),
+                "worlds",
+                LaunchConfiguration('world'),
+                "target_points.json"
+            ])
+        },
+        {"use_sim_time": True}
+    ],
+        output="screen",
+    )
+
 
     # Timing:
     #  - PX4 needs ~5 s to boot the gz server
@@ -231,41 +257,47 @@ def generate_launch_description():
     num_line = 9
     return LaunchDescription([
         world_arg,
+        LogInfo(msg=f"{json_points_path}\n\n"),
 
         # PX4 SITL + Gazebo GUI
-        LogInfo(msg="[1/9] Starting PX4 SITL (gz server + drone spawn) ..."),
+        LogInfo(msg="[1/10] Starting PX4 SITL (gz server + drone spawn) ..."),
         px4_sitl,
-        LogInfo(msg="[2/9] Micro XRCE-DDS Agent starts in 6 s ..."),
+        
+        LogInfo(msg="[2/10] Micro XRCE-DDS Agent starts in 6 s ..."),
         delayed_uxrce,
 
         # Bridge
-        LogInfo(msg="[3/9] ros_gz_bridge starts in 10 s ..."),      # clock
+        LogInfo(msg="[3/10] ros_gz_bridge starts in 10 s ..."),      # clock
         delayed_bridge,
         gz_pose_relay,
 
         # QGroundControl
-        LogInfo(msg="[4/9] QGroundControl starts in 12 s ..."),     # QGroundControl
+        LogInfo(msg="[4/10] QGroundControl starts in 12 s ..."),     # QGroundControl
         delayed_qgc,
         
         # Waypoint Controller
-        LogInfo(msg="[5/9] Launching Waypoint Controller Node in 14 s ..."),    # waypoint controller
+        LogInfo(msg="[5/10] Launching Waypoint Controller Node in 14 s ..."),    # waypoint controller
         delayed_controller,
 
         # Lidar
-        LogInfo(msg="[6/9] Starting Lidar scan bridge and stabilizer ..."),
+        LogInfo(msg="[6/10] Starting Lidar scan bridge and stabilizer ..."),
         gz_scan_bridge,
         lidar_stabilized_frame,
 
         # Static TF
-        LogInfo(msg="[7/9] Publishing static TF from base_link to lidar frame ..."),
+        LogInfo(msg="[7/10] Publishing static TF from base_link to lidar frame ..."),
         static_tf_lidar,
 
         # Cost Map
-        LogInfo(msg="[8/9] Starting Nav2 costmap and lifecycle manager ..."),
+        LogInfo(msg="[8/10] Starting Nav2 costmap and lifecycle manager ..."),
         nav2_costmap,
         nav2_lifecycle,
 
         # Rviz2
-        LogInfo(msg="[9/9] Starting Rviz2 ..."),
+        LogInfo(msg="[9/10] Starting Rviz2 ..."),
         rviz,
+
+        # Scenario Manager
+        LogInfo(msg="[10/10] Starting scenario manager ..."),
+        scenarioManager,
     ])

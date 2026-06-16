@@ -14,8 +14,8 @@ class ScenarioManager(Node):
         super().__init__('scenario_manager')
         
         # Parameters
-        self.declare_parameter('json_path', 'src/physics_connectors/Gazebo/worlds/world/target_points.json')
-        self.declare_parameter('arrival_threshold', 2.0) # mètres
+        self.declare_parameter('json_path', 'src/px4_drone_sim/worlds/world/target_points.json')
+        self.declare_parameter('arrival_threshold', 2.0) # meters
         
         # TF to follow the drone
         self.tf_buffer = Buffer()
@@ -26,6 +26,7 @@ class ScenarioManager(Node):
         
         # Loading the waypoints from the JSON file
         path = self.get_parameter('json_path').get_parameter_value().string_value
+        print(path,path,path,path)
         if not os.path.isfile(path):
             self.get_logger().error(f"JSON file doesn't exist: {path}")
             rclpy.shutdown()
@@ -47,7 +48,7 @@ class ScenarioManager(Node):
             new_wp = random.choice(self.waypoints)
             
         self.current_waypoint = new_wp
-        self.get_logger().info(f"Nouvel objectif : {new_wp['name']} ({new_wp["position"]['x']}, {new_wp["position"]['y']})")
+        self.get_logger().info(f"New objective : {new_wp['name']} ({new_wp["position"]['x']}, {new_wp["position"]['y']})")
 
     def control_loop(self):
         # 1. Publish current goal
@@ -73,7 +74,7 @@ class ScenarioManager(Node):
             distance = math.sqrt(dx**2 + dy**2)
 
             if distance < self.get_parameter('arrival_threshold').get_parameter_value().double_value:
-                self.get_logger().info("Cible atteinte !")
+                self.get_logger().info("Target reached!")
                 self.select_new_goal()
 
         except Exception as e:

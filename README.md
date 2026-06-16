@@ -41,3 +41,16 @@ ros2 launch px4_drone_sim sim.launch.py world:=ecn_campus
 ```
 
 Furthermore `walls` works also.
+
+
+### 4. Scenario Management
+
+The `scenarioManager` node automatically generates mission targets to test your drone's navigation system.
+
+**Interface for your Controller:**
+
+- Subscribe to: `/current_goal` (`geometry_msgs/msg/PoseStamped`)
+- The node automatically publishes the next target in the sequence once the current one is reached (distance < 2.0m)
+
+**Integration**
+Connect your navigation controller to the `current_goal` topic to receive automated mission targets.
